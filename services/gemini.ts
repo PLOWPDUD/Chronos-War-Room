@@ -64,8 +64,13 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
     }
   });
 
-  // Fix: Access response text using the .text property as defined in the SDK
-  const resultStr = response.text.trim();
+  // Fix: Access response text using the .text property as defined in the SDK and handle undefined
+  const text = response.text;
+  if (!text) {
+    throw new Error("No intelligence data received from the system.");
+  }
+  
+  const resultStr = text.trim();
   try {
     const data = JSON.parse(resultStr) as GenerationResult;
     // Ensure IDs exist if the model forgot

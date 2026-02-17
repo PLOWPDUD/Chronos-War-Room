@@ -134,7 +134,7 @@ const App: React.FC = () => {
       {state === 'IDLE' && (
         <div className="flex flex-col lg:flex-row items-start justify-center flex-1 gap-12">
           <div className="w-full lg:w-2/3">
-            <InputPanel onGenerate={handleGenerate} isSubmitting={state === 'GENERATING'} />
+            <InputPanel onGenerate={handleGenerate} isSubmitting={false} />
             {error && (
               <div className="mt-6 p-4 bg-red-900/30 border border-red-500 rounded-lg text-red-200 mono text-sm flex items-center gap-3">
                 <span className="animate-pulse">⚠️</span>
