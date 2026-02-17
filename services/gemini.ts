@@ -5,7 +5,7 @@ import { ScenarioInput, GenerationResult } from "../types";
 export const generateWarScenario = async (input: ScenarioInput): Promise<GenerationResult> => {
   // Fix: Correctly initialize the GoogleGenAI client with the required named parameter
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
+
   const prompt = `Generate a detailed alternate history/war scenario titled "${input.name}".
   Continent: ${input.continent}
   Historical Timeframe: From ${input.startYear} to ${input.endYear}.
