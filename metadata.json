@@ -1,0 +1,5 @@
+{
+  "name": "Chronos War Room",
+  "description": "An alternate history and war scenario generator that simulates complex global events based on user input, visualized through a tactical timeline interface.",
+  "requestFramePermissions": []
+}
