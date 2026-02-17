@@ -135,7 +135,7 @@ const InputPanel: React.FC<Props> = ({ onGenerate, isSubmitting }) => {
             </span>
           ) : (
             <>
-              <span className="absolute left-4 opacity-30 group-hover:translate-x-1 transition-transform">>>></span>
+              <span className="absolute left-4 opacity-30 group-hover:translate-x-1 transition-transform">&gt;&gt;&gt;</span>
               LAUNCH SIMULATION! 🚀
               <span className="absolute right-4 opacity-30 group-hover:-translate-x-1 transition-transform">&lt;&lt;&lt;</span>
             </>
