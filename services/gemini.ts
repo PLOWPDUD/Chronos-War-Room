@@ -3,8 +3,13 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ScenarioInput, GenerationResult } from "../types";
 
 export const generateWarScenario = async (input: ScenarioInput): Promise<GenerationResult> => {
-  // Fix: Correctly initialize the GoogleGenAI client with the required named parameter
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Fix: Explicitly check for the API key to prevent SDK initialization errors if the variable is missing
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("System Alert: API Key not found. Please verify secure connection settings.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `Generate a detailed alternate history/war scenario titled "${input.name}".
   Continent: ${input.continent}
