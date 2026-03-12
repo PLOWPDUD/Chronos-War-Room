@@ -40,9 +40,16 @@ const App: React.FC = () => {
   }, []);
 
   const handleSave = useCallback((scenario: GenerationResult) => {
+    const generateId = () => {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return Date.now().toString(36) + Math.random().toString(36).substring(2);
+    };
+
     const newSaved: SavedScenario = {
       ...scenario,
-      id: crypto.randomUUID(),
+      id: generateId(),
       timestamp: Date.now(),
       input: {
         name: scenario.scenarioName,
@@ -73,7 +80,8 @@ const App: React.FC = () => {
   }, []);
 
   const handleImport = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const target = event.target;
+    const file = target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
@@ -88,11 +96,18 @@ const App: React.FC = () => {
           return;
         }
 
+        const generateId = () => {
+          if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+          }
+          return Date.now().toString(36) + Math.random().toString(36).substring(2);
+        };
+
         const newScenario: SavedScenario = {
           scenarioName: parsed.scenarioName,
           overview: parsed.overview,
           events: parsed.events,
-          id: parsed.id || crypto.randomUUID(),
+          id: parsed.id || generateId(),
           timestamp: parsed.timestamp || Date.now(),
           input: parsed.input || {
             name: parsed.scenarioName,
@@ -111,11 +126,12 @@ const App: React.FC = () => {
           return updated;
         });
 
-        // Reset input value to allow selecting the same file again
-        event.target.value = '';
       } catch (err) {
         console.error("Import failed", err);
         alert("Failed to parse intelligence file.");
+      } finally {
+        // Reset input value to allow selecting the same file again
+        target.value = '';
       }
     };
     reader.readAsText(file);
