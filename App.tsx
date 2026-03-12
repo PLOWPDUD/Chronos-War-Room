@@ -195,7 +195,7 @@ const App: React.FC = () => {
             ) : (
               <div className="bg-slate-900/20 border border-dashed border-slate-800 p-8 rounded-lg text-center">
                 <p className="text-slate-600 text-xs mono">ARCHIVE EMPTY</p>
-                <p className="text-slate-700 text-[10px] mt-1">Generated simulations will appear here after saving.</p>
+                <p className="text-slate-700 text-[10px] mt-1">Generated scenarios will appear here after saving.</p>
               </div>
             )}
           </div>
