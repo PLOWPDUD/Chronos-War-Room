@@ -103,7 +103,7 @@ const InputPanel: React.FC<Props> = ({ onGenerate, isSubmitting }) => {
                     <input
                     type="number"
                     min="5"
-                    max="50"
+                    max="300"
                     className="w-full bg-slate-900/50 border border-slate-700 rounded p-2 text-sm text-slate-300 focus:border-emerald-500/50"
                     value={formData.eventCount}
                     onChange={(e) => setFormData({ ...formData, eventCount: parseInt(e.target.value) || 10 })}
