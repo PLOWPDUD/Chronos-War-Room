@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { GenerationResult, WarEvent, SavedScenario } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import TacticalMap from './TacticalMap';
@@ -13,8 +13,18 @@ interface Props {
 const TimelineView: React.FC<Props> = ({ result, onBack, onSave }) => {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(result.events[0]?.id || null);
   const [isSaved, setIsSaved] = useState(false);
+  const eventRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const selectedEvent = result.events.find(e => e.id === selectedEventId) || result.events[0];
+
+  useEffect(() => {
+    if (selectedEventId && eventRefs.current[selectedEventId]) {
+      eventRefs.current[selectedEventId]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [selectedEventId]);
 
   const handleSave = () => {
     onSave(result);
@@ -126,6 +136,7 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave }) => {
           {result.events.map((event, idx) => (
             <button
               key={event.id}
+              ref={(el) => { eventRefs.current[event.id] = el; }}
               onClick={() => setSelectedEventId(event.id)}
               className={`text-left p-4 rounded-lg border transition-all relative overflow-hidden group ${
                 selectedEventId === event.id 

@@ -6,15 +6,17 @@ export default defineConfig(({ mode }) => {
   // Fix: Cast process to any to prevent TS error "Property 'cwd' does not exist on type 'Process'"
   const env = loadEnv(mode, (process as any).cwd(), '');
   
-  // Prioritize env file, then fallback to process.env (system vars)
-  const apiKey = env.API_KEY || process.env.API_KEY || '';
+  // Prioritize GEMINI_API_KEY (platform provided), then env file, then fallback to process.env (system vars)
+  const apiKey = process.env.GEMINI_API_KEY || env.API_KEY || process.env.API_KEY || '';
 
   return {
     plugins: [react()],
     define: {
-      // Explicitly define process.env.API_KEY. using || '' ensures it is replaced by an empty string if missing, 
+      // Explicitly define process.env.API_KEY and process.env.GEMINI_API_KEY.
+      // Using || '' ensures it is replaced by an empty string if missing, 
       // rather than undefined, preventing "process is not defined" errors in the browser.
-      'process.env.API_KEY': JSON.stringify(apiKey)
+      'process.env.API_KEY': JSON.stringify(apiKey),
+      'process.env.GEMINI_API_KEY': JSON.stringify(apiKey)
     },
     server: {
       port: 3000,

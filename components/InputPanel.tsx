@@ -26,6 +26,41 @@ const InputPanel: React.FC<Props> = ({ onGenerate, isSubmitting }) => {
 
   const continents = ['North America', 'South America', 'Europe', 'Asia', 'Africa', 'Oceania', 'Antarctica', 'Global'];
 
+  const presets = [
+    {
+      name: "Invasion of Poland",
+      description: "Germany invades Poland on September 1, 1939, but Poland manages to hold the Vistula line for six months, drawing the Soviet Union into a premature conflict with Germany.",
+      startYear: "1939 AD",
+      endYear: "1940 AD",
+      continent: "Europe",
+      eventCount: 25
+    },
+    {
+      name: "Operation Sea Lion",
+      description: "The Luftwaffe achieves air superiority over the English Channel in 1940, leading to a successful German amphibious invasion of Southern England.",
+      startYear: "1940 AD",
+      endYear: "1942 AD",
+      continent: "Europe",
+      eventCount: 30
+    },
+    {
+      name: "The Red Sun Rising",
+      description: "The Soviet Union successfully lands troops in Hokkaido in 1945, leading to a partitioned Japan similar to East and West Germany.",
+      startYear: "1945 AD",
+      endYear: "1955 AD",
+      continent: "Asia",
+      eventCount: 20
+    }
+  ];
+
+  const applyPreset = (preset: typeof presets[0]) => {
+    setFormData({
+      ...formData,
+      ...preset,
+      additionalContext: preset.description // Also put it in context for better AI results
+    });
+  };
+
   return (
     <div className="w-full max-w-2xl bg-slate-900/40 border border-slate-800 p-6 sm:p-8 rounded-xl backdrop-blur-sm shadow-2xl relative overflow-hidden group">
       {/* Decorative corners */}
@@ -33,6 +68,22 @@ const InputPanel: React.FC<Props> = ({ onGenerate, isSubmitting }) => {
       <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-emerald-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
       <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-emerald-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
       <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-emerald-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+
+      <div className="mb-8 space-y-3">
+        <label className="text-slate-500 mono text-[10px] uppercase tracking-widest font-bold block">Scenario Presets</label>
+        <div className="flex flex-wrap gap-2">
+          {presets.map((preset) => (
+            <button
+              key={preset.name}
+              type="button"
+              onClick={() => applyPreset(preset)}
+              className="px-3 py-1.5 rounded-full bg-slate-950 border border-slate-800 text-slate-400 text-xs hover:border-emerald-500/50 hover:text-emerald-400 transition-all active:scale-95"
+            >
+              {preset.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-1">

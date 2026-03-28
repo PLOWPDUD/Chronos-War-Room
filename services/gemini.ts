@@ -3,10 +3,12 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ScenarioInput, GenerationResult } from "../types";
 
 export const generateWarScenario = async (input: ScenarioInput): Promise<GenerationResult> => {
-  const apiKey = process.env.API_KEY;
+  // In AI Studio, GEMINI_API_KEY is the standard environment variable.
+  // We also check for API_KEY as a fallback for other environments.
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
 
   if (!apiKey || apiKey.trim() === '') {
-    throw new Error("API_KEY environment variable is missing. Please set it in your environment settings.");
+    throw new Error("Gemini API key is missing. Please ensure GEMINI_API_KEY is set in your environment.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
