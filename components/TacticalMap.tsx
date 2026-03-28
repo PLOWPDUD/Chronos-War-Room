@@ -3,6 +3,7 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { WarEvent } from '../types';
 import * as d3 from 'd3';
 import { getFlagForFaction } from '../services/flagService';
+import FlagIcon from './FlagIcon';
 
 interface Props {
   events: WarEvent[];
@@ -29,30 +30,6 @@ interface City {
   lng: number;
   rank: number; // 1: Global Hub, 2: Major City, 3: Regional City
 }
-
-const FlagIcon: React.FC<{ faction: string; date: string; size?: number }> = ({ faction, date, size = 20 }) => {
-  const [flagUrl, setFlagUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchFlag = async () => {
-      const url = await getFlagForFaction(faction, date);
-      setFlagUrl(url);
-    };
-    fetchFlag();
-  }, [faction, date]);
-
-  if (!flagUrl) return <div style={{ width: size, height: size * 0.66 }} className="bg-slate-800 animate-pulse rounded-sm" />;
-
-  return (
-    <img 
-      src={flagUrl} 
-      alt={`${faction} flag`} 
-      referrerPolicy="no-referrer"
-      className="rounded-sm shadow-sm object-cover border border-white/20"
-      style={{ width: size, height: size * 0.66 }}
-    />
-  );
-};
 
 const CITIES: City[] = [
   // Rank 1: Global Hubs (Always visible)

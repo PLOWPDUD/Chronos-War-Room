@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { GenerationResult, WarEvent, SavedScenario } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import TacticalMap from './TacticalMap';
+import FlagIcon from './FlagIcon';
 
 interface Props {
   result: GenerationResult;
@@ -148,7 +149,10 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave }) => {
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
               )}
               <div className="flex justify-between items-start mb-1">
-                <span className="text-[10px] mono text-slate-500 uppercase tracking-tighter">PHASE {idx + 1}</span>
+                <div className="flex items-center gap-2">
+                  <FlagIcon faction={event.factionsInvolved[0]} date={event.date} size={14} />
+                  <span className="text-[10px] mono text-slate-500 uppercase tracking-tighter">PHASE {idx + 1}</span>
+                </div>
                 <span className="text-[10px] mono text-emerald-400 bg-emerald-400/10 px-1.5 rounded">{event.date}</span>
               </div>
               <h4 className={`text-sm font-semibold truncate ${selectedEventId === event.id ? 'text-white' : 'text-slate-300'}`}>
@@ -165,8 +169,13 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave }) => {
             <div className="bg-slate-900/40 border border-slate-800 p-8 rounded-xl backdrop-blur-md relative overflow-hidden min-h-[500px] flex flex-col">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-slate-800 pb-4 gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-bold mono text-xl">
-                    {result.events.indexOf(selectedEvent) + 1}
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-lg bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-bold mono text-xl">
+                      {result.events.indexOf(selectedEvent) + 1}
+                    </div>
+                    <div className="absolute -bottom-1 -right-1">
+                      <FlagIcon faction={selectedEvent.factionsInvolved[0]} date={selectedEvent.date} size={24} className="border-2 border-slate-900" />
+                    </div>
                   </div>
                   <div>
                     <h3 className="text-2xl font-bold text-white leading-tight">{selectedEvent.title}</h3>
