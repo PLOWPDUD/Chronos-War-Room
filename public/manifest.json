@@ -3,24 +3,17 @@
   "short_name": "Chronos",
   "description": "Strategic historical war scenario simulator.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#020617",
   "theme_color": "#10b981",
   "icons": [
     {
-      "src": "https://ais-dev-v35kvgckthxbvlwed6ppoz-24629916115.europe-west1.run.app/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    },
-    {
-      "src": "https://ais-dev-v35kvgckthxbvlwed6ppoz-24629916115.europe-west1.run.app/logo192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "https://ais-dev-v35kvgckthxbvlwed6ppoz-24629916115.europe-west1.run.app/logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }

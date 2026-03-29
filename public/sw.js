@@ -1,11 +1,12 @@
 
-const CACHE_NAME = 'chronos-war-room-v1';
+const CACHE_NAME = 'chronos-war-room-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/index.tsx',
   '/App.tsx',
-  '/manifest.json'
+  '/manifest.json',
+  '/icon.svg'
 ];
 
 self.addEventListener('install', event => {
