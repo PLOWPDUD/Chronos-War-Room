@@ -50,6 +50,22 @@ const InputPanel: React.FC<Props> = ({ onGenerate, isSubmitting }) => {
       endYear: "1955 AD",
       continent: "Asia",
       eventCount: 20
+    },
+    {
+      name: "Algerian Independence (1889)",
+      description: "French colonialism fails in Algeria in 1889, leading to an independent republic. The nation joins the Allies in both World Wars but maintains strict neutrality throughout the Cold War.",
+      startYear: "1889 AD",
+      endYear: "1991 AD",
+      continent: "Africa",
+      eventCount: 100
+    },
+    {
+      name: "Aztec Repel Spain",
+      description: "The Aztec Empire successfully repels Hernán Cortés in 1521, adopting European technology and establishing a dominant Mesoamerican superpower that rivals European colonial ambitions.",
+      startYear: "1521 AD",
+      endYear: "1800 AD",
+      continent: "North America",
+      eventCount: 75
     }
   ];
 

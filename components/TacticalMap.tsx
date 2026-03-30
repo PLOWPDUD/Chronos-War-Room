@@ -110,6 +110,7 @@ const TacticalMap: React.FC<Props> = ({ events, selectedEventId, onSelectEvent }
   const [geoData, setGeoData] = useState<any>(null);
   const [zoomTransform, setZoomTransform] = useState<d3.ZoomTransform>(d3.zoomIdentity);
   const svgRef = React.useRef<SVGSVGElement>(null);
+  const zoomBehaviorRef = React.useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
   useEffect(() => {
     // Fetch world GeoJSON for accurate borders
@@ -124,28 +125,14 @@ const TacticalMap: React.FC<Props> = ({ events, selectedEventId, onSelectEvent }
 
     const svg = d3.select(svgRef.current);
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([1, 8])
+      .scaleExtent([1, 12])
       .on('zoom', (event) => {
         setZoomTransform(event.transform);
       });
 
+    zoomBehaviorRef.current = zoom;
     svg.call(zoom);
   }, []);
-
-  const handleZoomIn = () => {
-    if (!svgRef.current) return;
-    d3.select(svgRef.current).transition().call(d3.zoom<SVGSVGElement, unknown>().scaleBy, 1.5);
-  };
-
-  const handleZoomOut = () => {
-    if (!svgRef.current) return;
-    d3.select(svgRef.current).transition().call(d3.zoom<SVGSVGElement, unknown>().scaleBy, 0.66);
-  };
-
-  const handleResetZoom = () => {
-    if (!svgRef.current) return;
-    d3.select(svgRef.current).transition().call(d3.zoom<SVGSVGElement, unknown>().transform, d3.zoomIdentity);
-  };
 
   const projection = useMemo(() => {
     return d3.geoEquirectangular()
@@ -156,6 +143,45 @@ const TacticalMap: React.FC<Props> = ({ events, selectedEventId, onSelectEvent }
   const pathGenerator = useMemo(() => {
     return d3.geoPath().projection(projection);
   }, [projection]);
+
+  // Center on selected event
+  useEffect(() => {
+    if (!svgRef.current || !selectedEventId || !zoomBehaviorRef.current) return;
+
+    const selectedEvent = events.find(e => e.id === selectedEventId);
+    if (!selectedEvent) return;
+
+    const coords = projection([selectedEvent.longitude, selectedEvent.latitude]);
+    if (!coords) return;
+
+    const [x, y] = coords;
+    const svg = d3.select(svgRef.current);
+    
+    // We want to center (x, y) in the view
+    // The view is mapWidth x mapHeight
+    const k = Math.max(zoomTransform.k, 3); // Zoom in if not already zoomed in
+    const tx = mapWidth / 2 - x * k;
+    const ty = mapHeight / 2 - y * k;
+
+    svg.transition()
+      .duration(750)
+      .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
+  }, [selectedEventId, projection, mapWidth, mapHeight, events]);
+
+  const handleZoomIn = () => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
+    d3.select(svgRef.current).transition().call(zoomBehaviorRef.current.scaleBy, 1.5);
+  };
+
+  const handleZoomOut = () => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
+    d3.select(svgRef.current).transition().call(zoomBehaviorRef.current.scaleBy, 0.66);
+  };
+
+  const handleResetZoom = () => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
+    d3.select(svgRef.current).transition().call(zoomBehaviorRef.current.transform, d3.zoomIdentity);
+  };
 
   const clusters = useMemo(() => {
     const projectedEvents: ProjectedWarEvent[] = events.map(e => {
