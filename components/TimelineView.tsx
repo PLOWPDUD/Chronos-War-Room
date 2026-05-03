@@ -9,14 +9,21 @@ interface Props {
   result: GenerationResult;
   onBack: () => void;
   onSave: (scenario: GenerationResult) => void;
+  onContinue: (count: number) => void;
+  isContinuing?: boolean;
 }
 
-const TimelineView: React.FC<Props> = ({ result, onBack, onSave }) => {
+const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isContinuing }) => {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(result.events[0]?.id || null);
   const [isSaved, setIsSaved] = useState(false);
+  const [showContinueOptions, setShowContinueOptions] = useState(false);
   const eventRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const selectedEvent = result.events.find(e => e.id === selectedEventId) || result.events[0];
+
+  const getFlagUrl = (faction: string) => {
+    return result.factionFlags?.[faction];
+  };
 
   useEffect(() => {
     if (selectedEventId && eventRefs.current[selectedEventId]) {
@@ -58,6 +65,38 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave }) => {
           <p className="text-slate-400 max-w-3xl leading-relaxed">{result.overview}</p>
         </div>
         <div className="flex flex-wrap gap-3">
+          <div className="relative">
+            <button 
+              onClick={() => setShowContinueOptions(!showContinueOptions)}
+              disabled={isContinuing}
+              className={`px-4 py-2 bg-slate-900 border border-emerald-500/30 hover:border-emerald-500 text-emerald-400 rounded-md mono text-xs transition-all flex items-center gap-2 group ${isContinuing ? 'opacity-50' : ''}`}
+            >
+              <svg className={`w-4 h-4 group-hover:rotate-180 transition-transform ${isContinuing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {isContinuing ? 'EXPANDING SEQUENCE...' : 'CONTINUE SCENARIO'}
+            </button>
+            
+            {showContinueOptions && !isContinuing && (
+              <div className="absolute top-full right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl z-50 p-2 animate-in slide-in-from-top-2">
+                <p className="text-[10px] mono text-slate-500 p-2 border-b border-slate-800 mb-1 uppercase tracking-tighter">Add Intelligence Nodes</p>
+                {[5, 10, 20].map(count => (
+                  <button 
+                    key={count}
+                    onClick={() => {
+                      onContinue(count);
+                      setShowContinueOptions(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-emerald-500/10 text-emerald-500 mono text-[10px] transition-colors flex justify-between items-center"
+                  >
+                    <span>+{count} Events</span>
+                    <span className="text-slate-600">»</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          
           <button 
             onClick={handleExport}
             className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md mono text-xs transition-colors flex items-center gap-2 border border-slate-700"
@@ -150,7 +189,7 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave }) => {
               )}
               <div className="flex justify-between items-start mb-1">
                 <div className="flex items-center gap-2">
-                  <FlagIcon faction={event.factionsInvolved[0]} date={event.date} size={14} />
+                  <FlagIcon faction={event.factionsInvolved[0]} date={event.date} size={14} customUrl={getFlagUrl(event.factionsInvolved[0])} />
                   <span className="text-[10px] mono text-slate-500 uppercase tracking-tighter">PHASE {idx + 1}</span>
                 </div>
                 <span className="text-[10px] mono text-emerald-400 bg-emerald-400/10 px-1.5 rounded">{event.date}</span>
@@ -174,7 +213,7 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave }) => {
                       {result.events.indexOf(selectedEvent) + 1}
                     </div>
                     <div className="absolute -bottom-1 -right-1">
-                      <FlagIcon faction={selectedEvent.factionsInvolved[0]} date={selectedEvent.date} size={24} className="border-2 border-slate-900" />
+                      <FlagIcon faction={selectedEvent.factionsInvolved[0]} date={selectedEvent.date} size={24} className="border-2 border-slate-900" customUrl={getFlagUrl(selectedEvent.factionsInvolved[0])} />
                     </div>
                   </div>
                   <div>
@@ -200,9 +239,10 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave }) => {
                     <h4 className="text-slate-500 mono text-[10px] uppercase font-bold mb-3 tracking-widest">Active Factions</h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedEvent.factionsInvolved.map((f, i) => (
-                        <span key={i} className="px-3 py-1 bg-slate-800/50 text-emerald-400 rounded-full text-[10px] mono border border-emerald-900/30">
+                        <div key={i} className="flex items-center gap-2 px-3 py-1 bg-slate-800/50 text-emerald-400 rounded-full text-[10px] mono border border-emerald-900/30">
+                          <FlagIcon faction={f} date={selectedEvent.date} size={12} customUrl={getFlagUrl(f)} />
                           {f}
-                        </span>
+                        </div>
                       ))}
                     </div>
                   </div>

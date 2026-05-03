@@ -7,6 +7,13 @@ export interface ScenarioInput {
   eventCount: number;
   startYear: string;
   endYear: string;
+  existingEvents?: WarEvent[]; // For continuation
+  customFlags?: CustomFlag[];
+}
+
+export interface CustomFlag {
+  factionName: string;
+  url: string;
 }
 
 export interface WarEvent {
@@ -25,6 +32,7 @@ export interface GenerationResult {
   scenarioName: string;
   overview: string;
   events: WarEvent[];
+  factionFlags?: Record<string, string>; // Map faction name to flag image URL
 }
 
 export interface SavedScenario extends GenerationResult {

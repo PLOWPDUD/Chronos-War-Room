@@ -9,48 +9,84 @@ export const getFlagForFaction = async (faction: string, year: string): Promise<
   if (flagCache[cacheKey]) return flagCache[cacheKey];
 
   // Normalize faction name for better matching
-  const normalizedFaction = faction.toLowerCase().trim();
+  const normalizedFaction = faction.trim(); // Keep case for URLs/Base64 if needed, though startsWith is fine
+
+  const getUrl = (codeOrUrl: string) => {
+    if (codeOrUrl.startsWith('http') || codeOrUrl.startsWith('data:')) return codeOrUrl;
+    return `https://flagcdn.com/w80/${codeOrUrl.toLowerCase()}.png`;
+  };
+
+  if (normalizedFaction.startsWith('http') || normalizedFaction.startsWith('data:')) {
+    return normalizedFaction;
+  }
+
+  const lowerFaction = normalizedFaction.toLowerCase();
+
+  // If faction is already a 2-letter ISO code
+  if (lowerFaction.length === 2 && /^[a-z]{2}$/.test(lowerFaction)) {
+    return getUrl(lowerFaction);
+  }
 
   // Check for well-known historical flags (placeholders or static URLs)
   const knownFlags: Record<string, string> = {
-    'united kingdom': 'https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg',
-    'great britain': 'https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg',
-    'uk': 'https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg',
-    'usa': 'https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg',
-    'united states': 'https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg',
-    'america': 'https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg',
+    'united kingdom': 'gb',
+    'great britain': 'gb',
+    'uk': 'gb',
+    'usa': 'us',
+    'united states': 'us',
+    'america': 'us',
     'soviet union': 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Flag_of_the_Soviet_Union.svg',
     'ussr': 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Flag_of_the_Soviet_Union.svg',
-    'russia': 'https://upload.wikimedia.org/wikipedia/en/f/f3/Flag_of_Russia.svg',
-    'germany': 'https://upload.wikimedia.org/wikipedia/en/b/ba/Flag_of_Germany.svg',
+    'russia': 'ru',
+    'germany': 'de',
     'nazi germany': 'https://upload.wikimedia.org/wikipedia/commons/7/77/Flag_of_Germany_%281935%E2%80%931945%29.svg',
     'third reich': 'https://upload.wikimedia.org/wikipedia/commons/7/77/Flag_of_Germany_%281935%E2%80%931945%29.svg',
-    'japan': 'https://upload.wikimedia.org/wikipedia/en/9/9e/Flag_of_Japan.svg',
+    'japan': 'jp',
     'empire of japan': 'https://upload.wikimedia.org/wikipedia/commons/5/54/Flag_of_the_Imperial_Japanese_Army.svg',
-    'france': 'https://upload.wikimedia.org/wikipedia/en/c/c3/Flag_of_France.svg',
-    'poland': 'https://upload.wikimedia.org/wikipedia/en/1/12/Flag_of_Poland.svg',
-    'italy': 'https://upload.wikimedia.org/wikipedia/en/0/03/Flag_of_Italy.svg',
-    'china': 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Flag_of_the_People%27s_Republic_of_China.svg',
-    'spain': 'https://upload.wikimedia.org/wikipedia/en/9/9a/Flag_of_Spain.svg',
-    'canada': 'https://upload.wikimedia.org/wikipedia/en/c/cf/Flag_of_Canada.svg',
-    'australia': 'https://upload.wikimedia.org/wikipedia/en/b/b9/Flag_of_Australia.svg',
-    'india': 'https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg',
-    'brazil': 'https://upload.wikimedia.org/wikipedia/en/0/05/Flag_of_Brazil.svg',
-    'turkey': 'https://upload.wikimedia.org/wikipedia/commons/b/b4/Flag_of_Turkey.svg',
+    'france': 'fr',
+    'poland': 'pl',
+    'italy': 'it',
+    'china': 'cn',
+    'spain': 'es',
+    'canada': 'ca',
+    'australia': 'au',
+    'india': 'in',
+    'brazil': 'br',
+    'turkey': 'tr',
     'ottoman empire': 'https://upload.wikimedia.org/wikipedia/commons/8/8e/Flag_of_the_Ottoman_Empire.svg',
     'austria-hungary': 'https://upload.wikimedia.org/wikipedia/commons/2/29/Flag_of_Austria-Hungary_%281869-1918%29.svg',
     'prussia': 'https://upload.wikimedia.org/wikipedia/commons/5/5b/Flag_of_Prussia_%281892-1918%29.svg',
+    'algeria': 'dz',
+    'egypt': 'eg',
+    'israel': 'il',
+    'south korea': 'kr',
+    'north korea': 'kp',
+    'vietnam': 'vn',
+    'ukraine': 'ua',
+    'belarus': 'by',
+    'mexico': 'mx',
+    'argentina': 'ar',
+    'chile': 'cl',
+    'sweden': 'se',
+    'norway': 'no',
+    'denmark': 'dk',
+    'finland': 'fi',
+    'netherlands': 'nl',
+    'belgium': 'be',
+    'switzerland': 'ch',
+    'greece': 'gr',
+    'portugal': 'pt',
   };
 
   // Try exact match first
-  if (knownFlags[normalizedFaction]) {
-    return knownFlags[normalizedFaction];
+  if (knownFlags[lowerFaction]) {
+    return getUrl(knownFlags[lowerFaction]);
   }
 
   // Try fuzzy match (if the faction name contains any of our keys)
   for (const key in knownFlags) {
-    if (normalizedFaction.includes(key)) {
-      return knownFlags[key];
+    if (lowerFaction.includes(key)) {
+      return getUrl(knownFlags[key]);
     }
   }
 

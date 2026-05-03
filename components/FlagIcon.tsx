@@ -7,18 +7,21 @@ interface Props {
   date: string;
   size?: number;
   className?: string;
+  customUrl?: string;
 }
 
-const FlagIcon: React.FC<Props> = ({ faction, date, size = 20, className = "" }) => {
-  const [flagUrl, setFlagUrl] = useState<string | null>(null);
+const FlagIcon: React.FC<Props> = ({ faction, date, size = 20, className = "", customUrl }) => {
+  const [flagUrl, setFlagUrl] = useState<string | null>(customUrl || null);
 
   useEffect(() => {
     const fetchFlag = async () => {
-      const url = await getFlagForFaction(faction, date);
+      // If customUrl is provided, it might be an ISO code or a full URL
+      const source = customUrl || faction;
+      const url = await getFlagForFaction(source, date);
       setFlagUrl(url);
     };
     fetchFlag();
-  }, [faction, date]);
+  }, [faction, date, customUrl]);
 
   if (!flagUrl) return <div style={{ width: size, height: size * 0.66 }} className={`bg-slate-800 animate-pulse rounded-sm ${className}`} />;
 

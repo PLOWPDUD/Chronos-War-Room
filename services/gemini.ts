@@ -109,7 +109,18 @@ const generateMockScenario = (input: ScenarioInput): GenerationResult => {
   
   // 1. Setup Context
   const geo = CONTINENT_CONFIG[input.continent] || CONTINENT_CONFIG['Global'];
-  const factions = FACTION_POOLS[Math.floor(Math.random() * FACTION_POOLS.length)];
+  let factions = FACTION_POOLS[Math.floor(Math.random() * FACTION_POOLS.length)];
+  const factionFlags: Record<string, string> = {};
+
+  if (input.customFlags && input.customFlags.length > 0) {
+    const customFactions = input.customFlags.map(f => f.factionName);
+    // Mix custom and default factions
+    factions = [...customFactions, ...factions].slice(0, 3);
+    input.customFlags.forEach(cf => {
+      factionFlags[cf.factionName] = cf.url;
+    });
+  }
+
   const protagonist = factions[0];
   const antagonist = factions[1];
   const wildcard = factions[2];
@@ -172,13 +183,12 @@ const generateMockScenario = (input: ScenarioInput): GenerationResult => {
   return {
     scenarioName: input.name,
     overview: `[SIMULATION MODE ACTIVE] \n\nScenario: ${input.name}\nTheater: ${input.continent}\n\nAnalysis: In a divergent timeline starting ${input.startYear}, the conflict between ${protagonist} and ${antagonist} escalated rapidly. Based on your input "${input.description.substring(0, 30)}...", the simulation projects a series of escalating engagements culminating in a global strategic shift.`,
-    events: events
+    events: events,
+    factionFlags: factionFlags
   };
 };
 
 export const generateWarScenario = async (input: ScenarioInput): Promise<GenerationResult> => {
-  // In AI Studio, GEMINI_API_KEY is the standard environment variable.
-  // We also check for API_KEY as a fallback for other environments.
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
 
   if (!apiKey || apiKey.trim() === '') {
@@ -188,74 +198,119 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
   try {
     const ai = new GoogleGenAI({ apiKey });
 
-  const prompt = `Generate a detailed alternate history/war scenario titled "${input.name}".
-  Continent: ${input.continent}
-  Historical Timeframe: From ${input.startYear} to ${input.endYear}.
-  Premise: ${input.description}
-  Additional Context: ${input.additionalContext}
-  Required Events: Exactly ${input.eventCount} chronological events.
-  
-  For each event, provide:
-  1. A specific date.
-  2. A title.
-  3. A detailed military/geopolitical description.
-  4. A strategic impact score (1-10).
-  5. Key factions.
-  6. Specific location name.
-  7. Approximate geographic coordinates (latitude and longitude) for the location.
-  
-  IMPORTANT: Return the response strictly as JSON.`;
-
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          scenarioName: { type: Type.STRING },
-          overview: { type: Type.STRING },
-          events: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                id: { type: Type.STRING },
-                date: { type: Type.STRING },
-                title: { type: Type.STRING },
-                description: { type: Type.STRING },
-                strategicImpact: { type: Type.NUMBER },
-                factionsInvolved: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING }
-                },
-                location: { type: Type.STRING },
-                latitude: { type: Type.NUMBER },
-                longitude: { type: Type.NUMBER }
-              },
-              required: ['id', 'date', 'title', 'description', 'strategicImpact', 'factionsInvolved', 'location', 'latitude', 'longitude']
-            }
-          }
-        },
-        required: ['scenarioName', 'overview', 'events']
-      }
+    const isContinuation = input.existingEvents && input.existingEvents.length > 0;
+    
+    let prompt = "";
+    if (isContinuation && input.existingEvents) {
+      prompt = `Continue the alternate history/war scenario titled "${input.name}".
+      Already occurred events: ${JSON.stringify(input.existingEvents.map(e => ({ date: e.date, title: e.title })))}
+      Premise: ${input.description}
+      Additional Context: ${input.additionalContext}
+      Generate ${input.eventCount} NEW chronological events that happen AFTER the last known event.
+      `;
+    } else {
+      prompt = `Generate a detailed alternate history/war scenario titled "${input.name}".
+      Continent: ${input.continent}
+      Historical Timeframe: From ${input.startYear} to ${input.endYear}.
+      Premise: ${input.description}
+      Additional Context: ${input.additionalContext}
+      Required Events: Exactly ${input.eventCount} chronological events.
+      `;
     }
-  });
 
-  const text = response.text;
-  if (!text) {
-    throw new Error("Empty response from AI");
-  }
-  
-  const resultStr = text.trim();
-  const data = JSON.parse(resultStr) as GenerationResult;
-  
-  data.events = data.events.map((e, idx) => ({
-    ...e,
-    id: e.id || `event-${idx}`
-  }));
-  return data;
+    prompt += `
+    For each event, provide:
+    1. A specific date.
+    2. A title.
+    3. A detailed military/geopolitical description.
+    4. A strategic impact score (1-10).
+    5. Key factions (ensure they are consistent if this is a continuation).
+    6. Specific location name.
+    7. Approximate geographic coordinates (latitude and longitude).
+    `;
+
+    if (input.customFlags && input.customFlags.length > 0) {
+      prompt += `
+      CRITICAL: The user has uploaded custom flags for specific factions: ${input.customFlags.map(f => `"${f.factionName}"`).join(', ')}. 
+      You MUST use these exact faction names in the scenario if they are relevant to the premise. 
+      Do NOT regenerate ISO codes for these factions in the "factionFlags" output as the system already has them.
+      `;
+    }
+    
+    prompt += `
+    SPECIAL TASK: For every faction involved in this scenario, map their name to a standard ISO 3166-1 alpha-2 country code if they represent a real country (e.g., "United Kingdom" -> "gb", "Germany" -> "de"). Include these in a "factionFlags" map.
+    
+    IMPORTANT: Return the response strictly as JSON.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            scenarioName: { type: Type.STRING },
+            overview: { type: Type.STRING },
+            factionFlags: { 
+              type: Type.OBJECT,
+              description: "Map of faction names to their ISO country codes (e.g., 'gb', 'us', 'fr')"
+            },
+            events: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  date: { type: Type.STRING },
+                  title: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  strategicImpact: { type: Type.NUMBER },
+                  factionsInvolved: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                  },
+                  location: { type: Type.STRING },
+                  latitude: { type: Type.NUMBER },
+                  longitude: { type: Type.NUMBER }
+                },
+                required: ['id', 'date', 'title', 'description', 'strategicImpact', 'factionsInvolved', 'location', 'latitude', 'longitude']
+              }
+            }
+          },
+          required: ['scenarioName', 'overview', 'events']
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) {
+      throw new Error("Empty response from AI");
+    }
+    
+    const resultStr = text.trim();
+    const data = JSON.parse(resultStr) as GenerationResult;
+    
+    data.events = data.events.map((e, idx) => ({
+      ...e,
+      id: e.id || `event-${idx}-${Date.now()}`
+    }));
+
+    if (isContinuation && input.existingEvents) {
+      // Merge with existing events
+      data.events = [...input.existingEvents, ...data.events];
+    }
+
+    // Merge custom flags provided by user into the results
+    if (input.customFlags) {
+      const mergedFlags = { ...data.factionFlags };
+      input.customFlags.forEach(cf => {
+        mergedFlags[cf.factionName] = cf.url;
+      });
+      data.factionFlags = mergedFlags;
+    }
+
+    return data;
   } catch (e) {
     console.warn("AI Generation failed, falling back to simulation mode:", e);
     return generateMockScenario(input);

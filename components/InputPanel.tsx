@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { ScenarioInput } from '../types';
+import React, { useState, useRef } from 'react';
+import { ScenarioInput, CustomFlag } from '../types';
 
 interface Props {
   onGenerate: (input: ScenarioInput) => void;
@@ -18,10 +18,38 @@ const InputPanel: React.FC<Props> = ({ onGenerate, isSubmitting }) => {
     endYear: '1945 AD'
   });
 
+  const [customFlags, setCustomFlags] = useState<CustomFlag[]>([]);
+  const [newFlagName, setNewFlagName] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.description || isSubmitting) return;
-    onGenerate(formData);
+    onGenerate({ ...formData, customFlags });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!newFlagName.trim()) {
+      alert("Please provide a faction name for this flag first.");
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setCustomFlags(prev => [...prev, { factionName: newFlagName.trim(), url: base64String }]);
+      setNewFlagName('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeFlag = (index: number) => {
+    setCustomFlags(prev => prev.filter((_, i) => i !== index));
   };
 
   const continents = ['North America', 'South America', 'Europe', 'Asia', 'Africa', 'Oceania', 'Antarctica', 'Global'];
@@ -184,6 +212,48 @@ const InputPanel: React.FC<Props> = ({ onGenerate, isSubmitting }) => {
                         value={formData.additionalContext}
                         onChange={(e) => setFormData({ ...formData, additionalContext: e.target.value })}
                      />
+                </div>
+
+                <div className="col-span-full pt-4 border-t border-slate-800/50 space-y-4">
+                  <label className="text-emerald-400 mono text-xs uppercase tracking-widest font-bold block">Custom Faction Intelligence (Flags)</label>
+                  
+                  <div className="flex gap-2">
+                    <input 
+                      type="text"
+                      placeholder="Faction Name"
+                      className="flex-1 bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white focus:border-emerald-500"
+                      value={newFlagName}
+                      onChange={(e) => setNewFlagName(e.target.value)}
+                    />
+                    <label className="cursor-pointer px-3 py-2 bg-slate-800 border border-slate-700 rounded text-[10px] mono text-slate-300 hover:bg-slate-700 transition-colors">
+                      UPLOAD FLAG
+                      <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                      />
+                    </label>
+                  </div>
+
+                  {customFlags.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {customFlags.map((flag, idx) => (
+                        <div key={idx} className="group/flag relative bg-slate-950 border border-slate-800 rounded p-2 flex items-center gap-2">
+                          <img src={flag.url} alt={flag.factionName} className="w-8 h-5 object-cover rounded-sm border border-slate-700" />
+                          <span className="text-[10px] mono text-slate-400 truncate flex-1">{flag.factionName}</span>
+                          <button 
+                            type="button"
+                            onClick={() => removeFlag(idx)}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover/flag:opacity-100 transition-opacity"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
             </div>
         </details>

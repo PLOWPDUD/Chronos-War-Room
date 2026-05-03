@@ -10,6 +10,8 @@ import LoadingScreen from './components/LoadingScreen';
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>('IDLE');
   const [result, setResult] = useState<GenerationResult | null>(null);
+  const [lastInput, setLastInput] = useState<ScenarioInput | null>(null);
+  const [isContinuing, setIsContinuing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>([]);
 
@@ -27,6 +29,7 @@ const App: React.FC = () => {
 
   const handleGenerate = useCallback(async (input: ScenarioInput) => {
     setState('GENERATING');
+    setLastInput(input);
     setError(null);
     try {
       const data = await generateWarScenario(input);
@@ -38,6 +41,27 @@ const App: React.FC = () => {
       setState('IDLE');
     }
   }, []);
+
+  const handleContinue = useCallback(async (count: number) => {
+    if (!result || !lastInput) return;
+    
+    setIsContinuing(true);
+    try {
+      const continuationInput: ScenarioInput = {
+        ...lastInput,
+        eventCount: count,
+        existingEvents: result.events,
+      };
+      
+      const data = await generateWarScenario(continuationInput);
+      setResult(data);
+    } catch (err: any) {
+      console.error(err);
+      setError('Strategic extension failed. The tactical grid is unstable.');
+    } finally {
+      setIsContinuing(false);
+    }
+  }, [result, lastInput]);
 
   const handleSave = useCallback((scenario: GenerationResult) => {
     const generateId = () => {
@@ -51,10 +75,10 @@ const App: React.FC = () => {
       ...scenario,
       id: generateId(),
       timestamp: Date.now(),
-      input: {
+      input: lastInput || {
         name: scenario.scenarioName,
         description: scenario.overview,
-        continent: 'Global', // Default fallback as original input is not persisted in result
+        continent: 'Global', 
         additionalContext: '',
         eventCount: scenario.events.length,
         startYear: scenario.events[0]?.date || '',
@@ -76,6 +100,7 @@ const App: React.FC = () => {
 
   const handleLoadSaved = useCallback((scenario: SavedScenario) => {
     setResult(scenario);
+    setLastInput(scenario.input);
     setState('RESULT');
   }, []);
 
@@ -227,6 +252,8 @@ const App: React.FC = () => {
           result={result} 
           onBack={handleReset} 
           onSave={handleSave}
+          onContinue={handleContinue}
+          isContinuing={isContinuing}
         />
       )}
 
