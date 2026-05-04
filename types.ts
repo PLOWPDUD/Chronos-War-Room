@@ -9,6 +9,7 @@ export interface ScenarioInput {
   endYear: string;
   existingEvents?: WarEvent[]; // For continuation
   customFlags?: CustomFlag[];
+  directive?: string;
 }
 
 export interface CustomFlag {

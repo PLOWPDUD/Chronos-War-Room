@@ -182,7 +182,7 @@ const generateMockScenario = (input: ScenarioInput): GenerationResult => {
 
   return {
     scenarioName: input.name,
-    overview: `[SIMULATION MODE ACTIVE] \n\nScenario: ${input.name}\nTheater: ${input.continent}\n\nAnalysis: In a divergent timeline starting ${input.startYear}, the conflict between ${protagonist} and ${antagonist} escalated rapidly. Based on your input "${input.description.substring(0, 30)}...", the simulation projects a series of escalating engagements culminating in a global strategic shift.`,
+    overview: `[SIMULATION MODE ACTIVE] \n\nScenario: ${input.name}\nTheater: ${input.continent}\n\nAnalysis: In a divergent timeline starting ${input.startYear}, the conflict between ${protagonist} and ${antagonist} escalated rapidly. Based on your input "${input.description.substring(0, 30)}...", the simulation projects a series of escalating engagements culminating in a global strategic shift.${input.directive ? `\n\nExpansion Directive: ${input.directive}` : ""}`,
     events: events,
     factionFlags: factionFlags
   };
@@ -206,7 +206,9 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
       Already occurred events: ${JSON.stringify(input.existingEvents.map(e => ({ date: e.date, title: e.title })))}
       Premise: ${input.description}
       Additional Context: ${input.additionalContext}
-      Generate ${input.eventCount} NEW chronological events that happen AFTER the last known event.
+      ${input.directive ? `STRATEGIC DIRECTIVE: ${input.directive}` : ''}
+      Generate ${input.eventCount} NEW chronological events that happen AFTER the last known event. 
+      ${input.directive ? `Ensure these new events strictly follow the Strategic Directive provided.` : ''}
       `;
     } else {
       prompt = `Generate a detailed alternate history/war scenario titled "${input.name}".

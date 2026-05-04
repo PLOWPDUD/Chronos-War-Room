@@ -9,7 +9,7 @@ interface Props {
   result: GenerationResult;
   onBack: () => void;
   onSave: (scenario: GenerationResult) => void;
-  onContinue: (count: number) => void;
+  onContinue: (count: number, directive?: string) => void;
   isContinuing?: boolean;
 }
 
@@ -17,7 +17,20 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isC
   const [selectedEventId, setSelectedEventId] = useState<string | null>(result.events[0]?.id || null);
   const [isSaved, setIsSaved] = useState(false);
   const [showContinueOptions, setShowContinueOptions] = useState(false);
+  const [directive, setDirective] = useState('');
   const eventRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const prevEventsLength = useRef(result.events.length);
+
+  useEffect(() => {
+    if (!isContinuing && result.events.length > prevEventsLength.current) {
+      // Find the first new event (it should be at index prevEventsLength.current)
+      const firstNewEventCode = result.events[prevEventsLength.current];
+      if (firstNewEventCode) {
+        setSelectedEventId(firstNewEventCode.id);
+      }
+    }
+    prevEventsLength.current = result.events.length;
+  }, [isContinuing, result.events]);
 
   const selectedEvent = result.events.find(e => e.id === selectedEventId) || result.events[0];
 
@@ -57,7 +70,29 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isC
   }));
 
   return (
-    <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 relative">
+      {isContinuing && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center gap-6 animate-in fade-in">
+          <div className="relative">
+            <div className="w-24 h-24 border-2 border-emerald-500/20 rounded-full"></div>
+            <div className="absolute inset-0 border-t-2 border-emerald-500 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <svg className="w-8 h-8 text-emerald-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+              </svg>
+            </div>
+          </div>
+          <div className="text-center space-y-2">
+            <h3 className="text-xl font-bold text-white mono uppercase tracking-widest">Recalculating Causal Chains</h3>
+            <p className="text-slate-400 mono text-xs animate-pulse">INTELLIGENCE NODES ARE BEING EXPANDED BY THE TACTICAL GRID...</p>
+            {directive && (
+              <div className="mt-4 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded text-[10px] text-emerald-400 mono max-w-md mx-auto">
+                <span className="text-slate-500">DIRECTIVE:</span> {directive}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-l-4 border-emerald-500 pl-6 py-2">
         <div className="flex-1">
           <span className="text-emerald-500 mono text-xs font-bold uppercase tracking-[0.3em]">Operational Deployment Report</span>
@@ -78,21 +113,39 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isC
             </button>
             
             {showContinueOptions && !isContinuing && (
-              <div className="absolute top-full right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl z-50 p-2 animate-in slide-in-from-top-2">
-                <p className="text-[10px] mono text-slate-500 p-2 border-b border-slate-800 mb-1 uppercase tracking-tighter">Add Intelligence Nodes</p>
-                {[5, 10, 20].map(count => (
-                  <button 
-                    key={count}
-                    onClick={() => {
-                      onContinue(count);
-                      setShowContinueOptions(false);
-                    }}
-                    className="w-full text-left px-3 py-2 rounded hover:bg-emerald-500/10 text-emerald-500 mono text-[10px] transition-colors flex justify-between items-center"
-                  >
-                    <span>+{count} Events</span>
-                    <span className="text-slate-600">»</span>
-                  </button>
-                ))}
+              <div className="absolute top-full right-0 mt-2 w-72 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 flex flex-col gap-4">
+                <div>
+                  <label className="text-[10px] mono text-slate-500 mb-2 uppercase tracking-tighter block">Strategic Directive (Optional)</label>
+                  <textarea 
+                    value={directive}
+                    onChange={(e) => setDirective(e.target.value)}
+                    placeholder="E.g. Focus on naval escalation, include a peace treaty, or shift to the 21st century..."
+                    className="w-full h-24 bg-slate-950 border border-slate-800 rounded p-2 text-[10px] text-slate-300 mono focus:border-emerald-500 focus:outline-none resize-none"
+                  />
+                </div>
+                
+                <div>
+                  <p className="text-[10px] mono text-slate-500 mb-2 uppercase tracking-tighter">Add Intelligence Nodes</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[5, 10, 20].map(count => (
+                      <button 
+                        key={count}
+                        onClick={() => {
+                          onContinue(count, directive);
+                          setShowContinueOptions(false);
+                          setDirective('');
+                        }}
+                        className="px-2 py-1.5 bg-slate-800 hover:bg-emerald-500/10 border border-slate-700 hover:border-emerald-500/50 text-emerald-500 mono text-[10px] transition-all rounded text-center"
+                      >
+                        +{count}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800">
+                  <p className="text-[9px] text-slate-600 leading-tight">Expanded sequences will build upon the existing causal chain using the provided directive.</p>
+                </div>
               </div>
             )}
           </div>

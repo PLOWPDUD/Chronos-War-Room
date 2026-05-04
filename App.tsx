@@ -42,7 +42,7 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleContinue = useCallback(async (count: number) => {
+  const handleContinue = useCallback(async (count: number, directive?: string) => {
     if (!result || !lastInput) return;
     
     setIsContinuing(true);
@@ -51,6 +51,7 @@ const App: React.FC = () => {
         ...lastInput,
         eventCount: count,
         existingEvents: result.events,
+        directive: directive,
       };
       
       const data = await generateWarScenario(continuationInput);
