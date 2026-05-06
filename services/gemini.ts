@@ -191,6 +191,8 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
 
     const isContinuation = input.existingEvents && input.existingEvents.length > 0;
     
+    console.log("Initiating AI Generation...");
+    
     let prompt = "";
     const systemInstruction = `You are a Chronographic Intelligence Officer. Your task is to document fictional alternate history scenarios and military conflicts.
 
@@ -257,7 +259,7 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
     IMPORTANT: Return the response strictly as JSON.`;
 
     const response = await ai.models.generateContent({
-      model: 'models/gemini-3.1-flash-lite-preview',
+      model: 'models/gemini-1.5-flash',
       contents: prompt,
       config: {
         systemInstruction: systemInstruction,
@@ -297,6 +299,8 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
         }
       }
     });
+
+    console.log("AI Generation completed.");
 
     const text = response.text;
     if (!text) {
