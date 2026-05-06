@@ -101,8 +101,6 @@ const EVENT_TEMPLATES = [
 ];
 
 const generateMockScenario = (input: ScenarioInput): GenerationResult => {
-  console.log("Generating Enhanced Simulation Scenario...");
-  
   const startYearNum = parseInt(input.startYear.replace(/\D/g, '')) || 2030;
   const endYearNum = parseInt(input.endYear.replace(/\D/g, '')) || 2040;
   const yearRange = Math.max(1, endYearNum - startYearNum);
@@ -115,7 +113,6 @@ const generateMockScenario = (input: ScenarioInput): GenerationResult => {
 
   if (input.customFlags && input.customFlags.length > 0) {
     const customFactions = input.customFlags.map(f => f.factionName);
-    // Mix custom and default factions
     factions = [...customFactions, ...factions].slice(0, 3);
     input.customFlags.forEach(cf => {
       if (cf.url) factionFlags[cf.factionName] = cf.url;
@@ -131,16 +128,13 @@ const generateMockScenario = (input: ScenarioInput): GenerationResult => {
   const usedTitles = new Set<string>();
 
   for (let i = 0; i < input.eventCount; i++) {
-    // 2. Progression Logic
-    const progress = i / (input.eventCount - 1); // 0 to 1
+    const progress = i / (input.eventCount - 1);
     const currentYear = startYearNum + Math.floor(progress * yearRange);
     const month = ["Jan", "Feb", "Apr", "Jun", "Aug", "Oct", "Dec"][Math.floor(Math.random() * 7)];
     
-    // 3. Selection
     const template = EVENT_TEMPLATES[Math.floor(Math.random() * EVENT_TEMPLATES.length)];
     const city = geo.cities[Math.floor(Math.random() * geo.cities.length)];
     
-    // Determine actors for this event, respecting existence dates if possible
     let actorA = protagonist;
     let actorB = antagonist;
 
@@ -152,36 +146,19 @@ const generateMockScenario = (input: ScenarioInput): GenerationResult => {
     };
 
     if (!checkExistence(actorA, currentYear)) actorA = wildcard;
-    if (!checkExistence(actorA, currentYear)) actorA = "Unknown Resistance";
-    if (!checkExistence(actorB, currentYear)) actorB = "Local Militia";
+    if (!checkExistence(actorA, currentYear)) actorA = "Insurgent Elements";
+    if (!checkExistence(actorB, currentYear)) actorB = "Sovereign Guard";
 
-    // 4. Coordinates with jitter
     const latBase = geo.latRange[0] + Math.random() * (geo.latRange[1] - geo.latRange[0]);
     const lngBase = geo.lngRange[0] + Math.random() * (geo.lngRange[1] - geo.lngRange[0]);
     
-    // 5. Narrative Construction
     const prefix = template.titles[Math.floor(Math.random() * template.titles.length)];
     let title = `${prefix} ${city}`;
-    if (template.type === "COVERT" || template.type === "TECH" || template.type === "CYBER") {
-      title = `${prefix}: ${String.fromCharCode(65 + Math.floor(Math.random() * 26))}-${Math.floor(Math.random() * 99)}`;
-    }
     
-    // Ensure unique titles if possible
-    let attempts = 0;
-    while (usedTitles.has(title) && attempts < 5) {
-       title = `${prefix} ${city} (II)`;
-       attempts++;
-    }
-    usedTitles.add(title);
-
-    // Calculate impact (Simulate rising tension curve: start low, peak middle/end)
-    let baseImpact = Math.floor(Math.random() * 5) + 3; // 3-8
-    if (template.type === "BATTLE" || template.type === "TECH" || template.type === "NAVAL") baseImpact += 2;
-    if (progress > 0.8) baseImpact += 1; // Climax
-    const impact = Math.min(10, Math.max(1, baseImpact));
+    const impact = Math.min(10, Math.max(1, 5 + Math.floor(Math.random() * 3)));
 
     events.push({
-      id: `sim-${Date.now()}-${i}`,
+      id: `fallback-${Date.now()}-${i}`,
       date: `${month} ${currentYear}`,
       title: title,
       description: template.desc(actorA, actorB, city),
@@ -195,7 +172,7 @@ const generateMockScenario = (input: ScenarioInput): GenerationResult => {
 
   return {
     scenarioName: input.name,
-    overview: `[SIMULATION MODE ACTIVE] \n\nScenario: ${input.name}\nTheater: ${input.continent}\n\nAnalysis: In a divergent timeline starting ${input.startYear}, the conflict between ${protagonist} and ${antagonist} escalated rapidly. Based on your input "${input.description.substring(0, 30)}...", the simulation projects a series of escalating engagements culminating in a global strategic shift.${input.directive ? `\n\nExpansion Directive: ${input.directive}` : ""}`,
+    overview: `INTELLIGENCE BRIEFING: SCENARIO ${input.name.toUpperCase()}\n\nTheater: ${input.continent}\n\nStrategic Summary: In the divergent timeline established in ${input.startYear}, the geopolitical friction between primary actors has reached a critical flashpoint. This report details the cascading series of military and political escalations that followed the initial ${input.description.substring(0, 40)} basis. Our projections indicate a period of intense volatility leading into the ${input.endYear} phase.`,
     events: events,
     factionFlags: factionFlags,
     factionIntel: factionIntel
@@ -215,23 +192,33 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
     const isContinuation = input.existingEvents && input.existingEvents.length > 0;
     
     let prompt = "";
+    const systemInstruction = `You are a Chronographic Intelligence Officer. Your task is to document fictional alternate history scenarios and military conflicts.
+
+    STRICT GUIDELINES:
+    1. NEVER mention you are an AI, a simulation, or a model.
+    2. NEVER include "Geneva Convention" or modern ethics disclaimers unless they are a central, plotted part of the fictional 18th-century/divergent timeline (e.g. "The Geneva Accord of 1750" in a fantasy setting).
+    3. STAY IN CHARACTER: Use cold, technical, military-briefing language.
+    4. NO META-TALK: No "As an AI, I cannot...", "Here is your scenario...", or "Sure, I can do that...". 
+    5. FOCUS ON THE LORE: If the user provides a premise, expand on it with gritty, specific military details.
+    6. DIVERGENT HISTORY: If the date is 1900 but the tech is lasers, lean into that specific divergent vibe.
+    7. Respect 'existence dates' for factions. Do not place a faction in an event if the event date is before their existence date.
+    `;
+
     if (isContinuation && input.existingEvents) {
-      prompt = `Continue the alternate history/war scenario titled "${input.name}".
-      Already occurred events: ${JSON.stringify(input.existingEvents.map(e => ({ date: e.date, title: e.title })))}
-      Premise: ${input.description}
-      Additional Context: ${input.additionalContext}
-      ${input.directive ? `STRATEGIC DIRECTIVE: ${input.directive}` : ''}
-      Generate ${input.eventCount} NEW chronological events that happen AFTER the last known event. 
-      ${input.directive ? `Ensure these new events strictly follow the Strategic Directive provided.` : ''}
-      `;
+      prompt = `UPDATE FOR: ${input.name}
+      PRIOR INTEL: ${JSON.stringify(input.existingEvents.map(e => ({ date: e.date, title: e.title })))}
+      STRATEGIC FOCUS: ${input.description}
+      SPECIFIC DIRECTIVE: ${input.directive || "Continue current trajectory."}
+      
+      APPEND ${input.eventCount} CHRONOLOGICAL DATA POINTS FOLLOWING THE LAST ENTRY.`;
     } else {
-      prompt = `Generate a detailed alternate history/war scenario titled "${input.name}".
-      Continent: ${input.continent}
-      Historical Timeframe: From ${input.startYear} to ${input.endYear}.
-      Premise: ${input.description}
-      Additional Context: ${input.additionalContext}
-      Required Events: Exactly ${input.eventCount} chronological events.
-      `;
+      prompt = `INITIATE SCENARIO: ${input.name}
+      REGION: ${input.continent}
+      TIMEFRAME: ${input.startYear} to ${input.endYear}
+      CORE PREMISE: ${input.description}
+      ADDITIONAL DATA: ${input.additionalContext || "None"}
+      
+      EXTRACT ${input.eventCount} KEY STRATEGIC EVENTS.`;
     }
 
     prompt += `
@@ -270,9 +257,10 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
     IMPORTANT: Return the response strictly as JSON.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'models/gemini-3.1-flash-lite-preview',
       contents: prompt,
       config: {
+        systemInstruction: systemInstruction,
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
