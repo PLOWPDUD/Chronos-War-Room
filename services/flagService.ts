@@ -29,6 +29,20 @@ export const getFlagForFaction = async (faction: string, year: string): Promise<
 
   // Check for well-known historical flags (placeholders or static URLs)
   const knownFlags: Record<string, string> = {
+    'rome': 'https://upload.wikimedia.org/wikipedia/commons/e/ea/Vexilloid_of_the_Roman_Empire.svg',
+    'roman empire': 'https://upload.wikimedia.org/wikipedia/commons/e/ea/Vexilloid_of_the_Roman_Empire.svg',
+    'austria': 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Flag_of_the_Habsburg_Monarchy_%281815%E2%80%931867%29.svg',
+    'austrian empire': 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Flag_of_the_Habsburg_Monarchy_%281815%E2%80%931867%29.svg',
+    'german empire': 'https://upload.wikimedia.org/wikipedia/commons/e/ec/Flag_of_the_German_Empire.svg',
+    'imperial germany': 'https://upload.wikimedia.org/wikipedia/commons/e/ec/Flag_of_the_German_Empire.svg',
+    'regency of algiers': 'https://upload.wikimedia.org/wikipedia/commons/7/7b/Flag_of_the_Regency_of_Algiers.svg',
+    'ottoman empire': 'https://upload.wikimedia.org/wikipedia/commons/8/84/Flag_of_the_Ottoman_Empire.svg',
+    'byzantine empire': 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Flag_of_the_Palaiologos_Dynasty.svg',
+    'holy roman empire': 'https://upload.wikimedia.org/wikipedia/commons/f/f6/Banner_of_the_Holy_Roman_Emperor_with_haloes_%281400-1806%29.svg',
+    'qing dynasty': 'https://upload.wikimedia.org/wikipedia/commons/b/b5/Flag_of_the_Qing_Dynasty_%281889-1912%29.svg',
+    'spanish empire': 'https://upload.wikimedia.org/wikipedia/commons/f/ff/Flag_of_Cross_of_Burgundy.svg',
+    'british empire': 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Flag_of_the_United_Kingdom.svg',
+    'french empire': 'https://upload.wikimedia.org/wikipedia/commons/c/c3/Flag_of_France.svg',
     'united kingdom': 'gb',
     'great britain': 'gb',
     'uk': 'gb',
@@ -53,7 +67,6 @@ export const getFlagForFaction = async (faction: string, year: string): Promise<
     'india': 'in',
     'brazil': 'br',
     'turkey': 'tr',
-    'ottoman empire': 'https://upload.wikimedia.org/wikipedia/commons/8/8e/Flag_of_the_Ottoman_Empire.svg',
     'austria-hungary': 'https://upload.wikimedia.org/wikipedia/commons/2/29/Flag_of_Austria-Hungary_%281869-1918%29.svg',
     'prussia': 'https://upload.wikimedia.org/wikipedia/commons/5/5b/Flag_of_Prussia_%281892-1918%29.svg',
     'algeria': 'dz',
@@ -80,18 +93,21 @@ export const getFlagForFaction = async (faction: string, year: string): Promise<
 
   // Try exact match first
   if (knownFlags[lowerFaction]) {
-    return getUrl(knownFlags[lowerFaction]);
+    const cachedFlag = getUrl(knownFlags[lowerFaction]);
+    flagCache[cacheKey] = cachedFlag;
+    return cachedFlag;
   }
 
   // Try fuzzy match (if the faction name contains any of our keys)
   for (const key in knownFlags) {
-    if (lowerFaction.includes(key)) {
-      return getUrl(knownFlags[key]);
+    if (lowerFaction === key || lowerFaction.includes(key + ' ') || lowerFaction.includes(' ' + key)) {
+      const cachedFlag = getUrl(knownFlags[key]);
+      flagCache[cacheKey] = cachedFlag;
+      return cachedFlag;
     }
   }
 
   // Generate a deterministic SVG flag for fictional or unknown factions
-  // This ensures they look like "flags" rather than random photos
   const generateFictionalFlag = (name: string) => {
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
@@ -103,11 +119,23 @@ export const getFlagForFaction = async (faction: string, year: string): Promise<
     
     const letter = name.charAt(0).toUpperCase();
     
+    // Add visual variety using shapes
+    const shapeType = ((hash % 3) + 3) % 3;
+    let shapeSvg = '';
+    
+    if (shapeType === 0) {
+      shapeSvg = `<circle cx="150" cy="100" r="60" fill="${secondaryColor}" fill-opacity="0.3" />`;
+    } else if (shapeType === 1) {
+      shapeSvg = `<rect x="75" y="50" width="150" height="100" fill="${secondaryColor}" fill-opacity="0.3" />`;
+    } else {
+      shapeSvg = `<polygon points="150,30 230,170 70,170" fill="${secondaryColor}" fill-opacity="0.3" />`;
+    }
+    
     const svg = `
       <svg width="300" height="200" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
         <rect width="300" height="200" fill="${primaryColor}" />
         <path d="M0 0 L300 200 M300 0 L0 200" stroke="white" stroke-width="20" stroke-opacity="0.1" />
-        <circle cx="150" cy="100" r="60" fill="${secondaryColor}" fill-opacity="0.2" />
+        ${shapeSvg}
         <text x="50%" y="55%" font-family="serif" font-size="100" fill="white" text-anchor="middle" dominant-baseline="central" font-weight="bold" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3)">${letter}</text>
         <rect width="300" height="200" fill="none" stroke="black" stroke-width="2" stroke-opacity="0.2" />
       </svg>
@@ -116,5 +144,57 @@ export const getFlagForFaction = async (faction: string, year: string): Promise<
     return `data:image/svg+xml;base64,${btoa(svg)}`;
   };
 
-  return generateFictionalFlag(faction);
+  // Attempt dynamic fetching from Wikimedia Commons for unknown historical factions
+  const fetchWikiFlag = async (name: string): Promise<string | null> => {
+    try {
+      // Step 1: Search for exactly "Flag of {name}"
+      const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent('Flag of ' + name)}&utf8=&format=json&origin=*&srlimit=1`);
+      const searchData = await searchRes.json();
+
+      let title = '';
+      if (searchData.query?.search?.length > 0) {
+        title = searchData.query.search[0].title;
+      }
+      
+      if (!title) return null;
+
+      // Ensure the title is somewhat related to a flag
+      if (!title.toLowerCase().includes('flag') && !title.toLowerCase().includes('banner')) {
+          return null;
+      }
+
+      // Get the image
+      const imageRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=pageimages&titles=${encodeURIComponent(title)}&pithumbsize=300&format=json&origin=*`);
+      const imageData = await imageRes.json();
+      const pages = imageData.query?.pages;
+      
+      if (pages) {
+        const pageId = Object.keys(pages)[0];
+        if (pages[pageId]?.thumbnail?.source) {
+          return pages[pageId].thumbnail.source;
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      console.warn("Wikimedia fetch failed for", name, e);
+      return null; 
+    }
+  };
+
+  // Skip dynamic fetching if it looks like a purely procedural or fictional name
+  const isLikelyReal = /[a-zA-Z]{4,}/.test(normalizedFaction);
+  
+  if (isLikelyReal) {
+    const wikiFlag = await fetchWikiFlag(normalizedFaction);
+    if (wikiFlag) {
+      flagCache[cacheKey] = wikiFlag;
+      return wikiFlag;
+    }
+  }
+
+  // Fallback to fictional wrapper
+  const generatedFlag = generateFictionalFlag(faction);
+  flagCache[cacheKey] = generatedFlag;
+  return generatedFlag;
 };
