@@ -259,7 +259,7 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
     IMPORTANT: Return the response strictly as JSON.`;
 
     const response = await ai.models.generateContent({
-      model: 'models/gemini-1.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         systemInstruction: systemInstruction,
@@ -307,7 +307,12 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
       throw new Error("Empty response from AI");
     }
     
-    const resultStr = text.trim();
+    let resultStr = text.trim();
+    if (resultStr.startsWith('```json')) {
+      resultStr = resultStr.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
+    } else if (resultStr.startsWith('```')) {
+      resultStr = resultStr.replace(/^```\n?/, '').replace(/\n?```$/, '').trim();
+    }
     const data = JSON.parse(resultStr) as GenerationResult;
     
     // Initialize factionIntel from factionFlags if it exists
@@ -346,8 +351,8 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
     }
 
     return data;
-  } catch (e) {
-    console.warn("AI Generation failed, falling back to simulation mode:", e);
-    return generateMockScenario(input);
+  } catch (e: any) {
+    console.error("AI Generation failed. Error details:", e);
+    throw new Error(`AI Generation Error: ${e.message || JSON.stringify(e)}`);
   }
 };
