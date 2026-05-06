@@ -36,6 +36,20 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isC
     prevEventsLength.current = result.events.length;
   }, [isContinuing, result.events]);
 
+  const [newIntelName, setNewIntelName] = useState('');
+  const [newIntelDate, setNewIntelDate] = useState('');
+
+  const handleAddFactionIntel = () => {
+    if (!newIntelName.trim()) return;
+    onUpdateFactions({ 
+      [newIntelName.trim()]: { 
+        existenceDate: newIntelDate.trim() || undefined 
+      } 
+    });
+    setNewIntelName('');
+    setNewIntelDate('');
+  };
+
   const selectedEvent = result.events.find(e => e.id === selectedEventId) || result.events[0];
 
   const getFlagUrl = (faction: string) => {
@@ -80,7 +94,10 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isC
     reader.readAsDataURL(file);
   };
 
-  const allFactions = Array.from(new Set(result.events.flatMap(e => e.factionsInvolved)));
+  const allFactions = Array.from(new Set([
+    ...result.events.flatMap(e => e.factionsInvolved),
+    ...Object.keys(result.factionIntel || {})
+  ]));
 
   const chartData = result.events.map((e, i) => ({
     name: e.date,
@@ -138,36 +155,65 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isC
                   <button onClick={() => setShowFactionIntel(false)} className="text-slate-500 hover:text-white">×</button>
                 </div>
 
-                <div className="space-y-3 max-h-80 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
-                  {allFactions.map(faction => (
-                    <div key={faction} className="flex flex-col gap-2 bg-slate-950 p-2 rounded border border-slate-800">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <FlagIcon faction={faction} date={result.events[0]?.date || ''} size={20} customUrl={getFlagUrl(faction)} />
-                          <span className="text-[10px] mono text-slate-300 truncate max-w-[120px]">{faction}</span>
-                        </div>
-                        <button 
-                          onClick={() => {
-                            setNewFlagFaction(faction);
-                            fileInputRef.current?.click();
-                          }}
-                          className="text-[9px] mono text-emerald-500 hover:underline"
-                        >
-                          UPDATE FLAG
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2 border-t border-slate-900 pt-2">
-                        <span className="text-[8px] mono text-slate-500 uppercase">EXISTENCE:</span>
-                        <input 
-                          type="text"
-                          defaultValue={result.factionIntel?.[faction]?.existenceDate || ''}
-                          onBlur={(e) => onUpdateFactions({ [faction]: { existenceDate: e.target.value } })}
-                          placeholder="e.g. 1940 BC"
-                          className="flex-1 bg-transparent border-none text-[9px] mono text-slate-400 focus:ring-0 p-0"
-                        />
-                      </div>
+                <div className="space-y-4 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+                  {/* Add New Faction Form */}
+                  <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-lg flex flex-col gap-2">
+                    <p className="text-[9px] mono text-emerald-500 font-bold uppercase mb-1">Add Foreign Entity</p>
+                    <input 
+                      type="text"
+                      placeholder="Name (e.g. Neo-Sparta)"
+                      value={newIntelName}
+                      onChange={(e) => setNewIntelName(e.target.value)}
+                      className="bg-slate-950 border border-slate-800 rounded p-1.5 text-[10px] text-white focus:border-emerald-500"
+                    />
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        placeholder="Existence (e.g. 1920)"
+                        value={newIntelDate}
+                        onChange={(e) => setNewIntelDate(e.target.value)}
+                        className="flex-1 bg-slate-950 border border-slate-800 rounded p-1.5 text-[10px] text-white focus:border-emerald-500"
+                      />
+                      <button 
+                        onClick={handleAddFactionIntel}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold mono transition-colors"
+                      >
+                        TRACK
+                      </button>
                     </div>
-                  ))}
+                  </div>
+
+                  <div className="border-t border-slate-800 pt-3 space-y-3">
+                    {allFactions.sort().map(faction => (
+                      <div key={faction} className="flex flex-col gap-2 bg-slate-950 p-2 rounded border border-slate-800 group/item">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <FlagIcon faction={faction} date={result.events[0]?.date || ''} size={20} customUrl={getFlagUrl(faction)} />
+                            <span className="text-[10px] mono text-slate-300 truncate max-w-[120px]">{faction}</span>
+                          </div>
+                          <button 
+                            onClick={() => {
+                              setNewFlagFaction(faction);
+                              fileInputRef.current?.click();
+                            }}
+                            className="text-[9px] mono text-emerald-500 hover:underline opacity-0 group-hover/item:opacity-100 transition-opacity"
+                          >
+                            UPLOAD FLAG
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 border-t border-slate-900 pt-2">
+                          <span className="text-[8px] mono text-slate-500 uppercase">EXISTENCE:</span>
+                          <input 
+                            type="text"
+                            defaultValue={result.factionIntel?.[faction]?.existenceDate || ''}
+                            onBlur={(e) => onUpdateFactions({ [faction]: { existenceDate: e.target.value } })}
+                            placeholder="e.g. 1940 BC"
+                            className="flex-1 bg-transparent border-none text-[9px] mono text-slate-400 focus:ring-0 p-0"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-800">
@@ -337,6 +383,36 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isC
               <p className="text-[10px] text-slate-500 uppercase mono mt-1">{event.location}</p>
             </button>
           ))}
+
+          {/* Quick Continue Card */}
+          <div className="mt-4 p-5 bg-slate-900/80 border border-emerald-500/30 rounded-xl shadow-lg animate-in slide-in-from-bottom-2">
+            <h4 className="text-emerald-500 mono text-[10px] uppercase font-bold mb-3 tracking-[0.2em] flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
+              Future Intel Directive
+            </h4>
+            <p className="text-[9px] text-slate-500 mono mb-3 uppercase leading-tight">Tell more details about the next phases of this war to expand the simulation directive.</p>
+            <textarea 
+              value={directive}
+              onChange={(e) => setDirective(e.target.value)}
+              placeholder="E.g. What happens after the fall of the capital? Does a third faction intervene? Mention secret technology..."
+              className="w-full h-24 bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-slate-300 mono focus:border-emerald-500 focus:outline-none resize-none mb-4 transition-all"
+            />
+            <div className="grid grid-cols-3 gap-2">
+              {[5, 10, 15].map(count => (
+                <button 
+                  key={count}
+                  onClick={() => {
+                    onContinue(count, directive);
+                    setDirective('');
+                  }}
+                  disabled={isContinuing}
+                  className="py-2 bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-500/30 hover:border-emerald-500 text-emerald-500 hover:text-white mono text-[10px] rounded-md transition-all flex items-center justify-center font-bold"
+                >
+                  +{count}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Selected Event Detail */}

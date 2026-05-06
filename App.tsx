@@ -47,11 +47,19 @@ const App: React.FC = () => {
     
     setIsContinuing(true);
     try {
+      const currentFactionIntel = result.factionIntel || {};
+      const updatedCustomFlags = Object.entries(currentFactionIntel).map(([name, intel]) => ({
+        factionName: name,
+        url: intel.flagUrl,
+        existenceDate: intel.existenceDate
+      }));
+
       const continuationInput: ScenarioInput = {
         ...lastInput,
         eventCount: count,
         existingEvents: result.events,
         directive: directive,
+        customFlags: updatedCustomFlags
       };
       
       const data = await generateWarScenario(continuationInput);

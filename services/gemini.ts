@@ -253,10 +253,14 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
       });
       
       prompt += `
-      CRITICAL: The user has specified custom factions involved: ${customFactions.join(', ')}. 
-      You MUST use these exact faction names in the scenario. 
-      CHRONOLOGY RULE: A faction MUST NOT appear in the timeline before its specified 'existence date'. Introduce these factions into the narrative naturally as they emerge in history. Do not make a faction a primary actor if it hasn't existed yet in the timeline.
-      For these factions, do NOT map them to ISO codes in the "factionFlags" output if they are fictional or non-standard, as the system already has their data.
+      CRITICAL: The user has specified custom factions/intel involved: ${customFactions.join(', ')}. 
+      You MUST respect these exact faction names. 
+      CHRONOLOGY & APPEARANCE RULES:
+      1. A faction MUST NOT appear in the timeline before its specified 'existence date'.
+      2. If a faction has an existence date that hasn't been reached yet in the current timeline, do NOT include it as an actor yet.
+      3. Use these factions as key players once their time comes. 
+      4. DO NOT ignore factions the user added just because they haven't appeared yet; keep them in mind for future events if they are relevant to the directive or premise.
+      5. For standard countries, do NOT map them to ISO codes in the "factionFlags" output if they are fictional or non-standard, as the system already has their data.
       `;
     }
     
