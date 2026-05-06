@@ -140,6 +140,21 @@ const generateMockScenario = (input: ScenarioInput): GenerationResult => {
     const template = EVENT_TEMPLATES[Math.floor(Math.random() * EVENT_TEMPLATES.length)];
     const city = geo.cities[Math.floor(Math.random() * geo.cities.length)];
     
+    // Determine actors for this event, respecting existence dates if possible
+    let actorA = protagonist;
+    let actorB = antagonist;
+
+    const checkExistence = (faction: string, year: number) => {
+      const intel = factionIntel[faction];
+      if (!intel || !intel.existenceDate) return true;
+      const existenceYear = parseInt(intel.existenceDate.replace(/\D/g, '')) || 0;
+      return year >= existenceYear;
+    };
+
+    if (!checkExistence(actorA, currentYear)) actorA = wildcard;
+    if (!checkExistence(actorA, currentYear)) actorA = "Unknown Resistance";
+    if (!checkExistence(actorB, currentYear)) actorB = "Local Militia";
+
     // 4. Coordinates with jitter
     const latBase = geo.latRange[0] + Math.random() * (geo.latRange[1] - geo.latRange[0]);
     const lngBase = geo.lngRange[0] + Math.random() * (geo.lngRange[1] - geo.lngRange[0]);
@@ -159,10 +174,6 @@ const generateMockScenario = (input: ScenarioInput): GenerationResult => {
     }
     usedTitles.add(title);
 
-    // Determine actors for this event
-    const actorA = Math.random() > 0.3 ? protagonist : wildcard;
-    const actorB = antagonist;
-    
     // Calculate impact (Simulate rising tension curve: start low, peak middle/end)
     let baseImpact = Math.floor(Math.random() * 5) + 3; // 3-8
     if (template.type === "BATTLE" || template.type === "TECH" || template.type === "NAVAL") baseImpact += 2;
@@ -235,10 +246,16 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
     `;
 
     if (input.customFlags && input.customFlags.length > 0) {
-      const customFactions = input.customFlags.map(f => `"${f.factionName}"${f.existenceDate ? ` (active since ${f.existenceDate})` : ''}`);
+      const customFactions = input.customFlags.map(f => {
+        let details = `"${f.factionName}"`;
+        if (f.existenceDate) details += ` (active since ${f.existenceDate})`;
+        return details;
+      });
+      
       prompt += `
       CRITICAL: The user has specified custom factions involved: ${customFactions.join(', ')}. 
       You MUST use these exact faction names in the scenario. 
+      CHRONOLOGY RULE: A faction MUST NOT appear in the timeline before its specified 'existence date'. Introduce these factions into the narrative naturally as they emerge in history. Do not make a faction a primary actor if it hasn't existed yet in the timeline.
       For these factions, do NOT map them to ISO codes in the "factionFlags" output if they are fictional or non-standard, as the system already has their data.
       `;
     }
@@ -297,6 +314,14 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
     const resultStr = text.trim();
     const data = JSON.parse(resultStr) as GenerationResult;
     
+    // Initialize factionIntel from factionFlags if it exists
+    if (data.factionFlags && !data.factionIntel) {
+      data.factionIntel = {};
+      Object.entries(data.factionFlags).forEach(([name, url]) => {
+        data.factionIntel![name] = { flagUrl: url };
+      });
+    }
+
     data.events = data.events.map((e, idx) => ({
       ...e,
       id: e.id || `event-${idx}-${Date.now()}`

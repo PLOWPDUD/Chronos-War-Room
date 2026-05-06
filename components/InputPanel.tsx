@@ -52,8 +52,13 @@ const InputPanel: React.FC<Props> = ({ onGenerate, isSubmitting }) => {
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64String = reader.result as string;
-      setCustomFlags(prev => [...prev, { factionName: newFlagName.trim(), url: base64String }]);
+      setCustomFlags(prev => [...prev, { 
+        factionName: newFlagName.trim(), 
+        url: base64String,
+        existenceDate: newFlagDate.trim() || undefined
+      }]);
       setNewFlagName('');
+      setNewFlagDate('');
       if (fileInputRef.current) fileInputRef.current.value = '';
     };
     reader.readAsDataURL(file);

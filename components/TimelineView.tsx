@@ -375,12 +375,20 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isC
                   <div>
                     <h4 className="text-slate-500 mono text-[10px] uppercase font-bold mb-3 tracking-widest">Active Factions</h4>
                     <div className="flex flex-wrap gap-2">
-                      {selectedEvent.factionsInvolved.map((f, i) => (
-                        <div key={i} className="flex items-center gap-2 px-3 py-1 bg-slate-800/50 text-emerald-400 rounded-full text-[10px] mono border border-emerald-900/30">
-                          <FlagIcon faction={f} date={selectedEvent.date} size={12} customUrl={getFlagUrl(f)} />
-                          {f}
-                        </div>
-                      ))}
+                      {selectedEvent.factionsInvolved.map((f, i) => {
+                        const intel = result.factionIntel?.[f];
+                        return (
+                          <div key={i} className="flex flex-col gap-1 items-start px-3 py-1.5 bg-slate-800/50 text-emerald-400 rounded-lg text-[10px] mono border border-emerald-900/30">
+                            <div className="flex items-center gap-2">
+                              <FlagIcon faction={f} date={selectedEvent.date} size={12} customUrl={getFlagUrl(f)} />
+                              {f}
+                            </div>
+                            {intel?.existenceDate && (
+                              <span className="text-[8px] text-slate-500 uppercase ml-5">Est. {intel.existenceDate}</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                   <div>
