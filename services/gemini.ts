@@ -258,47 +258,54 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
     
     IMPORTANT: Return the response strictly as JSON.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        systemInstruction: systemInstruction,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            scenarioName: { type: Type.STRING },
-            overview: { type: Type.STRING },
-            factionFlags: { 
-              type: Type.OBJECT,
-              description: "Map of faction names to their ISO country codes (e.g., 'gb', 'us', 'fr')"
-            },
-            events: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  date: { type: Type.STRING },
-                  title: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  strategicImpact: { type: Type.NUMBER },
-                  factionsInvolved: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING }
-                  },
-                  location: { type: Type.STRING },
-                  latitude: { type: Type.NUMBER },
-                  longitude: { type: Type.NUMBER }
-                },
-                required: ['id', 'date', 'title', 'description', 'strategicImpact', 'factionsInvolved', 'location', 'latitude', 'longitude']
-              }
-            }
-          },
-          required: ['scenarioName', 'overview', 'events']
-        }
-      }
+    const timeoutPromise = new Promise<any>((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout: The AI simulation took too long to respond. The server might be heavily loaded.')), 60000);
     });
+
+    const response = await Promise.race([
+      ai.models.generateContent({
+        model: 'gemini-3.1-flash-lite-preview', // Switch to a potentially more available lite model
+        contents: prompt,
+        config: {
+          systemInstruction: systemInstruction,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              scenarioName: { type: Type.STRING },
+              overview: { type: Type.STRING },
+              factionFlags: { 
+                type: Type.OBJECT,
+                description: "Map of faction names to their ISO country codes (e.g., 'gb', 'us', 'fr')"
+              },
+              events: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING },
+                    date: { type: Type.STRING },
+                    title: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    strategicImpact: { type: Type.NUMBER },
+                    factionsInvolved: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING }
+                    },
+                    location: { type: Type.STRING },
+                    latitude: { type: Type.NUMBER },
+                    longitude: { type: Type.NUMBER }
+                  },
+                  required: ['id', 'date', 'title', 'description', 'strategicImpact', 'factionsInvolved', 'location', 'latitude', 'longitude']
+                }
+              }
+            },
+            required: ['scenarioName', 'overview', 'events']
+          }
+        }
+      }),
+      timeoutPromise
+    ]);
 
     console.log("AI Generation completed.");
 
