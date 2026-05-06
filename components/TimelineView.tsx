@@ -11,13 +11,17 @@ interface Props {
   onSave: (scenario: GenerationResult) => void;
   onContinue: (count: number, directive?: string) => void;
   isContinuing?: boolean;
+  onUpdateFactions: (factions: Record<string, { flagUrl?: string; existenceDate?: string }>) => void;
 }
 
-const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isContinuing }) => {
+const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isContinuing, onUpdateFactions }) => {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(result.events[0]?.id || null);
   const [isSaved, setIsSaved] = useState(false);
   const [showContinueOptions, setShowContinueOptions] = useState(false);
+  const [showFactionIntel, setShowFactionIntel] = useState(false);
   const [directive, setDirective] = useState('');
+  const [newFlagFaction, setNewFlagFaction] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const eventRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const prevEventsLength = useRef(result.events.length);
 
@@ -62,6 +66,22 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isC
     downloadAnchorNode.remove();
   };
 
+  const handleFlagUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !newFlagFaction) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      onUpdateFactions({ [newFlagFaction]: { flagUrl: base64String } });
+      setNewFlagFaction('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const allFactions = Array.from(new Set(result.events.flatMap(e => e.factionsInvolved)));
+
   const chartData = result.events.map((e, i) => ({
     name: e.date,
     impact: e.strategicImpact,
@@ -100,6 +120,70 @@ const TimelineView: React.FC<Props> = ({ result, onBack, onSave, onContinue, isC
           <p className="text-slate-400 max-w-3xl leading-relaxed">{result.overview}</p>
         </div>
         <div className="flex flex-wrap gap-3">
+          <div className="relative">
+            <button 
+              onClick={() => setShowFactionIntel(!showFactionIntel)}
+              className="px-4 py-2 bg-slate-900 border border-slate-700 hover:border-emerald-500/50 text-slate-300 rounded-md mono text-xs transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-7h.01M9 16h.01" />
+              </svg>
+              FACTION INTEL
+            </button>
+
+            {showFactionIntel && (
+              <div className="absolute top-full right-0 mt-2 w-80 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 flex flex-col gap-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <h3 className="text-xs font-bold text-white mono uppercase tracking-widest">Active Intelligence</h3>
+                  <button onClick={() => setShowFactionIntel(false)} className="text-slate-500 hover:text-white">×</button>
+                </div>
+
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+                  {allFactions.map(faction => (
+                    <div key={faction} className="flex flex-col gap-2 bg-slate-950 p-2 rounded border border-slate-800">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <FlagIcon faction={faction} date={result.events[0]?.date || ''} size={20} customUrl={getFlagUrl(faction)} />
+                          <span className="text-[10px] mono text-slate-300 truncate max-w-[120px]">{faction}</span>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            setNewFlagFaction(faction);
+                            fileInputRef.current?.click();
+                          }}
+                          className="text-[9px] mono text-emerald-500 hover:underline"
+                        >
+                          UPDATE FLAG
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 border-t border-slate-900 pt-2">
+                        <span className="text-[8px] mono text-slate-500 uppercase">EXISTENCE:</span>
+                        <input 
+                          type="text"
+                          defaultValue={result.factionIntel?.[faction]?.existenceDate || ''}
+                          onBlur={(e) => onUpdateFactions({ [faction]: { existenceDate: e.target.value } })}
+                          placeholder="e.g. 1940 BC"
+                          className="flex-1 bg-transparent border-none text-[9px] mono text-slate-400 focus:ring-0 p-0"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 border-t border-slate-800">
+                   <p className="text-[9px] text-slate-600 leading-tight mb-3 italic">Uploaded flags will be embedded in the tactical system and exported with intelligence files.</p>
+                   <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={handleFlagUpload}
+                    />
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="relative">
             <button 
               onClick={() => setShowContinueOptions(!showContinueOptions)}

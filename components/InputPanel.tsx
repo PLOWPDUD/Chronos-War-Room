@@ -20,12 +20,23 @@ const InputPanel: React.FC<Props> = ({ onGenerate, isSubmitting }) => {
 
   const [customFlags, setCustomFlags] = useState<CustomFlag[]>([]);
   const [newFlagName, setNewFlagName] = useState('');
+  const [newFlagDate, setNewFlagDate] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.description || isSubmitting) return;
     onGenerate({ ...formData, customFlags });
+  };
+
+  const handleAddFaction = () => {
+    if (!newFlagName.trim()) return;
+    setCustomFlags(prev => [...prev, { 
+      factionName: newFlagName.trim(), 
+      existenceDate: newFlagDate.trim() || undefined 
+    }]);
+    setNewFlagName('');
+    setNewFlagDate('');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,6 +165,80 @@ const InputPanel: React.FC<Props> = ({ onGenerate, isSubmitting }) => {
           />
         </div>
 
+        <div className="space-y-4 pt-4 border-t border-slate-800/50">
+          <div className="flex justify-between items-center">
+            <label className="text-emerald-400 mono text-xs uppercase tracking-widest font-bold">Factions of Interest</label>
+            <span className="text-slate-500 mono text-[9px] uppercase">Optional: Add specific nations or upload custom flags</span>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input 
+              type="text"
+              placeholder="Faction Name (e.g. Neo-Sparta)"
+              className="flex-1 bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white focus:border-emerald-500"
+              value={newFlagName}
+              onChange={(e) => setNewFlagName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddFaction())}
+            />
+            <input 
+              type="text"
+              placeholder="Existence Date (e.g. 1920 AD)"
+              className="w-full sm:w-32 bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white focus:border-emerald-500"
+              value={newFlagDate}
+              onChange={(e) => setNewFlagDate(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddFaction())}
+            />
+            <button 
+              type="button"
+              onClick={handleAddFaction}
+              className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded text-[10px] mono text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+            >
+              ADD
+            </button>
+            <label className="cursor-pointer px-4 py-2 bg-slate-800 border border-slate-700 rounded text-[10px] mono text-slate-300 hover:bg-slate-700 transition-colors text-center">
+              UPLOAD FLAG
+              <input 
+                type="file" 
+                ref={fileInputRef}
+                className="hidden" 
+                accept="image/*"
+                onChange={handleFileUpload}
+              />
+            </label>
+          </div>
+
+          {customFlags.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {customFlags.map((flag, idx) => (
+                <div key={idx} className="group/flag relative bg-slate-950 border border-slate-800 rounded p-2 flex items-center gap-2">
+                  {flag.url ? (
+                    <img src={flag.url} alt={flag.factionName} className="w-8 h-5 object-cover rounded-sm border border-slate-700" />
+                  ) : (
+                    <div className="w-8 h-5 bg-slate-800 rounded-sm border border-slate-700 flex items-center justify-center">
+                      <svg className="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-7h.01M9 16h.01" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="flex flex-col truncate flex-1">
+                    <span className="text-[10px] mono text-white truncate">{flag.factionName}</span>
+                    {flag.existenceDate && (
+                      <span className="text-[8px] mono text-slate-500 truncate">Est. {flag.existenceDate}</span>
+                    )}
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => removeFlag(idx)}
+                    className="bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover/flag:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-slate-800/50">
            <div className="space-y-1">
             <label className="text-slate-500 mono text-[10px] uppercase tracking-widest font-bold">Start Year</label>
@@ -212,48 +297,6 @@ const InputPanel: React.FC<Props> = ({ onGenerate, isSubmitting }) => {
                         value={formData.additionalContext}
                         onChange={(e) => setFormData({ ...formData, additionalContext: e.target.value })}
                      />
-                </div>
-
-                <div className="col-span-full pt-4 border-t border-slate-800/50 space-y-4">
-                  <label className="text-emerald-400 mono text-xs uppercase tracking-widest font-bold block">Custom Faction Intelligence (Flags)</label>
-                  
-                  <div className="flex gap-2">
-                    <input 
-                      type="text"
-                      placeholder="Faction Name"
-                      className="flex-1 bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white focus:border-emerald-500"
-                      value={newFlagName}
-                      onChange={(e) => setNewFlagName(e.target.value)}
-                    />
-                    <label className="cursor-pointer px-3 py-2 bg-slate-800 border border-slate-700 rounded text-[10px] mono text-slate-300 hover:bg-slate-700 transition-colors">
-                      UPLOAD FLAG
-                      <input 
-                        type="file" 
-                        ref={fileInputRef}
-                        className="hidden" 
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                      />
-                    </label>
-                  </div>
-
-                  {customFlags.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {customFlags.map((flag, idx) => (
-                        <div key={idx} className="group/flag relative bg-slate-950 border border-slate-800 rounded p-2 flex items-center gap-2">
-                          <img src={flag.url} alt={flag.factionName} className="w-8 h-5 object-cover rounded-sm border border-slate-700" />
-                          <span className="text-[10px] mono text-slate-400 truncate flex-1">{flag.factionName}</span>
-                          <button 
-                            type="button"
-                            onClick={() => removeFlag(idx)}
-                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover/flag:opacity-100 transition-opacity"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
             </div>
         </details>

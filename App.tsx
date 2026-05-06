@@ -169,6 +169,26 @@ const App: React.FC = () => {
     setError(null);
   }, []);
 
+  const handleUpdateFactions = useCallback((factions: Record<string, { flagUrl?: string; existenceDate?: string }>) => {
+    if (!result) return;
+    const newFactionFlags = { ...result.factionFlags };
+    const newFactionIntel = { ...result.factionIntel };
+
+    Object.entries(factions).forEach(([name, data]) => {
+      if (data.flagUrl) newFactionFlags[name] = data.flagUrl;
+      newFactionIntel[name] = {
+        ...newFactionIntel[name],
+        ...data
+      };
+    });
+
+    setResult({
+      ...result,
+      factionFlags: newFactionFlags,
+      factionIntel: newFactionIntel
+    });
+  }, [result]);
+
   return (
     <div className="min-h-screen flex flex-col max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 gap-8 relative">
       <Header />
@@ -255,6 +275,7 @@ const App: React.FC = () => {
           onSave={handleSave}
           onContinue={handleContinue}
           isContinuing={isContinuing}
+          onUpdateFactions={handleUpdateFactions}
         />
       )}
 

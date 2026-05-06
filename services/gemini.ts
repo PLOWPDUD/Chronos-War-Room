@@ -111,13 +111,15 @@ const generateMockScenario = (input: ScenarioInput): GenerationResult => {
   const geo = CONTINENT_CONFIG[input.continent] || CONTINENT_CONFIG['Global'];
   let factions = FACTION_POOLS[Math.floor(Math.random() * FACTION_POOLS.length)];
   const factionFlags: Record<string, string> = {};
+  const factionIntel: Record<string, { flagUrl?: string; existenceDate?: string }> = {};
 
   if (input.customFlags && input.customFlags.length > 0) {
     const customFactions = input.customFlags.map(f => f.factionName);
     // Mix custom and default factions
     factions = [...customFactions, ...factions].slice(0, 3);
     input.customFlags.forEach(cf => {
-      factionFlags[cf.factionName] = cf.url;
+      if (cf.url) factionFlags[cf.factionName] = cf.url;
+      factionIntel[cf.factionName] = { flagUrl: cf.url, existenceDate: cf.existenceDate };
     });
   }
 
@@ -184,7 +186,8 @@ const generateMockScenario = (input: ScenarioInput): GenerationResult => {
     scenarioName: input.name,
     overview: `[SIMULATION MODE ACTIVE] \n\nScenario: ${input.name}\nTheater: ${input.continent}\n\nAnalysis: In a divergent timeline starting ${input.startYear}, the conflict between ${protagonist} and ${antagonist} escalated rapidly. Based on your input "${input.description.substring(0, 30)}...", the simulation projects a series of escalating engagements culminating in a global strategic shift.${input.directive ? `\n\nExpansion Directive: ${input.directive}` : ""}`,
     events: events,
-    factionFlags: factionFlags
+    factionFlags: factionFlags,
+    factionIntel: factionIntel
   };
 };
 
@@ -232,10 +235,11 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
     `;
 
     if (input.customFlags && input.customFlags.length > 0) {
+      const customFactions = input.customFlags.map(f => `"${f.factionName}"${f.existenceDate ? ` (active since ${f.existenceDate})` : ''}`);
       prompt += `
-      CRITICAL: The user has uploaded custom flags for specific factions: ${input.customFlags.map(f => `"${f.factionName}"`).join(', ')}. 
-      You MUST use these exact faction names in the scenario if they are relevant to the premise. 
-      Do NOT regenerate ISO codes for these factions in the "factionFlags" output as the system already has them.
+      CRITICAL: The user has specified custom factions involved: ${customFactions.join(', ')}. 
+      You MUST use these exact faction names in the scenario. 
+      For these factions, do NOT map them to ISO codes in the "factionFlags" output if they are fictional or non-standard, as the system already has their data.
       `;
     }
     
@@ -306,10 +310,18 @@ export const generateWarScenario = async (input: ScenarioInput): Promise<Generat
     // Merge custom flags provided by user into the results
     if (input.customFlags) {
       const mergedFlags = { ...data.factionFlags };
+      const mergedIntel = { ...data.factionIntel };
       input.customFlags.forEach(cf => {
-        mergedFlags[cf.factionName] = cf.url;
+        if (cf.url) {
+          mergedFlags[cf.factionName] = cf.url;
+        }
+        mergedIntel[cf.factionName] = { 
+          flagUrl: cf.url || mergedIntel[cf.factionName]?.flagUrl, 
+          existenceDate: cf.existenceDate || mergedIntel[cf.factionName]?.existenceDate 
+        };
       });
       data.factionFlags = mergedFlags;
+      data.factionIntel = mergedIntel;
     }
 
     return data;
